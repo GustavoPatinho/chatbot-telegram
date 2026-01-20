@@ -19,10 +19,9 @@ O fluxo permite que um usuário envie o nome de uma cidade via Telegram e receba
 ---
 
 ## 📁 Estrutura do Repositório
-.
-├── workflow-chatbot-telegram.json   # Workflow do n8n exportado
-├── docker-compose.yml               # Infraestrutura local com Docker
-└── README.md                        # Documentação do projeto
+- workflow-chatbot-telegram.json   # Workflow do n8n exportado
+- docker-compose.yml               # Infraestrutura local com Docker
+- README.md                        # Documentação do projeto
 
 ## 🔄 Funcionamento do Workflow
 
@@ -66,10 +65,10 @@ O workflow Weather Check segue os seguintes passos:
 
 Antes de subir os containers, edite o arquivo docker-compose.yml e substitua os valores abaixo:
 
-N8N_ENCRYPTION_KEY=REPLACE_WITH_RANDOM_KEY
-WEBHOOK_URL=https://REPLACE_WITH_NGROK_DOMAIN
-N8N_EDITOR_BASE_URL=https://REPLACE_WITH_NGROK_DOMAIN
-NGROK_AUTHTOKEN=REPLACE_WITH_NGROK_AUTH_TOKEN
+- N8N_ENCRYPTION_KEY=REPLACE_WITH_RANDOM_KEY
+- WEBHOOK_URL=https://REPLACE_WITH_NGROK_DOMAIN
+- N8N_EDITOR_BASE_URL=https://REPLACE_WITH_NGROK_DOMAIN
+- NGROK_AUTHTOKEN=REPLACE_WITH_NGROK_AUTH_TOKEN
 
 3. Subir o Ambiente
 
