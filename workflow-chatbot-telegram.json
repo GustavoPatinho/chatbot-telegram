@@ -1,0 +1,315 @@
+{
+  "name": "Weather Check",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9e0868c5-dc01-43e4-84e6-39238a746d13",
+      "name": "Telegram Trigger - Receive Message",
+      "webhookId": "ee5b55d9-1f05-4d73-9493-0c84c7bad7ae",
+      "credentials": {
+        "telegramApi": {
+          "id": "jVXzHKLKaH3OB038",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6100aa60-a13e-4eb5-a300-b1006cd5036b",
+              "name": "queue",
+              "value": "={{ \n  $json.message.text\n    .trim()\n    .toLowerCase()\n    .normalize(\"NFD\")\n    .replace(/[\\u0300-\\u036f]/g, \"\")\n    .replace(/\\s*,\\s*/g, \",\")\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "43fc3aa6-b0bf-4f9b-91b4-aaf65d7b3d71",
+      "name": "Edit Fields - Normalize queue"
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.queue }}"
+            },
+            {
+              "name": "units",
+              "value": "metric"
+            },
+            {
+              "name": "lang",
+              "value": "pt_br"
+            },
+            {
+              "name": "appid",
+              "value": "OPENWEATHER_API_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        432,
+        0
+      ],
+      "id": "c7b003ce-3bfd-41ef-89f9-6175e6a88970",
+      "name": "HTTP Request - Get info from OpenWeather",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bf53d160-67db-4b4d-a57e-5d42fea3a369",
+              "name": "temperature",
+              "value": "={{ Math.round($json.main.temp) }}",
+              "type": "number"
+            },
+            {
+              "id": "a75670a9-712e-4a43-8f2d-c528112173cd",
+              "name": "city",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        768,
+        -16
+      ],
+      "id": "4ec6fc08-7b5b-4d65-b7ad-87877ed0c113",
+      "name": "Edit Fields - Get rounded temperature and city"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger - Receive Message').item.json.message.chat.id }}",
+        "text": "=🌤️ A temperatura em {{ $('Edit Fields - Get rounded temperature and city').item.json.city }} é de {{ $('Edit Fields - Get rounded temperature and city').item.json.temperature }}°C. ",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1072,
+        -16
+      ],
+      "id": "c469b4e9-0bf8-4bb3-bfb4-4c2de9f09222",
+      "name": "Send Message - Weather",
+      "webhookId": "9ea32e1f-b01d-47a8-b023-590920d6eec1",
+      "notesInFlow": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "jVXzHKLKaH3OB038",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5aa364be-684c-482c-8bea-53dfaccafe22",
+              "leftValue": "={{ $json.error.message }}",
+              "rightValue": "city not found",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "f3b92334-0fa6-4bd7-9161-02be1e682f1b",
+              "leftValue": "={{ $json.error.status }}",
+              "rightValue": 404,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        512,
+        272
+      ],
+      "id": "de9152ae-37ba-4888-a6ea-73fdc2d2f841",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger - Receive Message').item.json.message.chat.id }}",
+        "text": "=❌ Cidade não encontrada. Use o formato Cidade,UF (ex.: São Paulo,SP).",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        704,
+        160
+      ],
+      "id": "5a84f360-d3d6-48c2-bc84-92993a66986a",
+      "name": "Send Message - Error - City not found",
+      "webhookId": "9ea32e1f-b01d-47a8-b023-590920d6eec1",
+      "credentials": {
+        "telegramApi": {
+          "id": "jVXzHKLKaH3OB038",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger - Receive Message').item.json.message.chat.id }}",
+        "text": "=⚠️ Erro inesperado ao consultar o clima. Tente novamente.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        704,
+        368
+      ],
+      "id": "05b57c90-0619-412f-af7a-0c5e25fd25a9",
+      "name": "Send Message - Error - Internal Error",
+      "webhookId": "9ea32e1f-b01d-47a8-b023-590920d6eec1",
+      "credentials": {
+        "telegramApi": {
+          "id": "jVXzHKLKaH3OB038",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger - Receive Message": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields - Normalize queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Normalize queue": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Get info from OpenWeather",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Get info from OpenWeather": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields - Get rounded temperature and city",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Get rounded temperature and city": {
+      "main": [
+        [
+          {
+            "node": "Send Message - Weather",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send Message - Error - City not found",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Message - Error - Internal Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "aa1fbd2c-ab36-4968-bcd7-511dcbc5acef",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "52ab5a83222d8f8e6b9d9c919749a53d44b51d1d2711bc74ffd7fdb7fcb82191"
+  },
+  "id": "Z9d87lGtmSlWULdeyFsqY",
+  "tags": []
+}

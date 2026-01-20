@@ -1,0 +1,113 @@
+services:
+  n8n:
+    image: n8nio/n8n:2.3.5
+    container_name: n8n-editor
+    ports:
+      - 5678:5678
+    volumes:
+      - .n8n_data:/home/node/.n8n
+    environment:
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - TZ=America/Sao_Paulo
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_BLOCK_ENV_ACCESS_IN_NODES=true
+      - N8N_GIT_NODE_DISABLE_BARE_REPOS=true
+
+      # 🔐 MUST BE SET BY USER
+      - N8N_ENCRYPTION_KEY=REPLACE_WITH_RANDOM_KEY
+
+      # 🌍 Public URL required by Telegram webhook
+      - WEBHOOK_URL=https://REPLACE_WITH_NGROK_DOMAIN
+      - N8N_EDITOR_BASE_URL=https://REPLACE_WITH_NGROK_DOMAIN
+
+      ## Postgres
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n
+
+      ## Queue Mode
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - OFFLOAD_MANUAL_EXECUTIONS=true
+
+    networks:
+      - n8n-ftr
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+  n8n-worker:
+    image: n8nio/n8n:2.3.5
+    command: worker
+    volumes:
+      - .n8n_data:/home/node/.n8n
+    environment:
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - TZ=America/Sao_Paulo
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_BLOCK_ENV_ACCESS_IN_NODES=true
+      - N8N_GIT_NODE_DISABLE_BARE_REPOS=true
+
+      # 🔐 MUST MATCH EDITOR
+      - N8N_ENCRYPTION_KEY=REPLACE_WITH_RANDOM_KEY
+      ## Postgres
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n
+
+      ## Queue Mode
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - OFFLOAD_MANUAL_EXECUTIONS=true
+
+    networks:
+      - n8n-ftr
+
+  postgres:
+    image: ankane/pgvector
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8n
+      - POSTGRES_DB=n8n
+    volumes:
+      - .n8n_postgres_data:/var/lib/postgresql/data
+    networks:
+      - n8n-ftr
+    restart: always
+
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis-data:/data
+    networks:
+      - n8n-ftr
+    restart: always
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    environment:
+      - NGROK_AUTHTOKEN=REPLACE_WITH_NGROK_AUTH_TOKEN
+    command:
+      - http
+      - n8n-editor:5678
+    networks:
+      - n8n-ftr
+    depends_on:
+      - n8n
+
+networks:
+  n8n-ftr:
+    driver: bridge
